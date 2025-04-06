@@ -1,0 +1,50 @@
+import requests
+from flask import Flask, render_template, request
+
+app = Flask(__name__)
+
+# Set your Edamam API credentials
+APP_ID = "YOUR_EDAMAM_APP_ID"
+API_KEY = "YOUR_Edamam_API_KEY"
+
+
+def get_nutrition_data(ingredient):
+    # Append '100g' if no measure is provided
+    if not any(char.isdigit() for char in ingredient):
+        ingredient += " 100g"
+    
+    url = "https://api.edamam.com/api/nutrition-data"
+    params = {
+        "app_id": APP_ID,
+        "app_key": API_KEY,
+        "ingr": ingredient
+    }
+
+    response = requests.get(url, params=params)
+    
+    # Check if the request was successful
+    if response.status_code == 200:
+        data = response.json()
+        if "totalNutrients" in data:
+            return {
+                "calories": data.get("calories", "N/A"),
+                "protein": data["totalNutrients"].get("PROCNT", {}).get("quantity", "N/A"),
+                "fat": data["totalNutrients"].get("FAT", {}).get("quantity", "N/A"),
+                "carbs": data["totalNutrients"].get("CHOCDF", {}).get("quantity", "N/A"),
+                "sodium": data["totalNutrients"].get("NA", {}).get("quantity", "N/A"),
+                "cholesterol": data["totalNutrients"].get("CHOLE", {}).get("quantity", "N/A"),
+            }
+    return None
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = None
+    if request.method == "POST":
+        ingredient = request.form.get("ingredient")
+        result = get_nutrition_data(ingredient)
+    return render_template("index.html", result=result)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
