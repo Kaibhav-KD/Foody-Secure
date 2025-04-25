@@ -1,50 +1,207 @@
-import requests
-from flask import Flask, render_template, request
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodySecure - Nutrition Insights</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-app = Flask(__name__)
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f3e7e9 0%, #e3eeff 100%);
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-# Set your Edamam API credentials
-APP_ID = "YOUR_EDAMAM_APP_ID"
-API_KEY = "YOUR_Edamam_API_KEY"
+        .container {
+            text-align: center;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            animation: fadeIn 1.5s ease;
+        }
 
-
-def get_nutrition_data(ingredient):
-    # Append '100g' if no measure is provided
-    if not any(char.isdigit() for char in ingredient):
-        ingredient += " 100g"
-    
-    url = "https://api.edamam.com/api/nutrition-data"
-    params = {
-        "app_id": APP_ID,
-        "app_key": API_KEY,
-        "ingr": ingredient
-    }
-
-    response = requests.get(url, params=params)
-    
-    # Check if the request was successful
-    if response.status_code == 200:
-        data = response.json()
-        if "totalNutrients" in data:
-            return {
-                "calories": data.get("calories", "N/A"),
-                "protein": data["totalNutrients"].get("PROCNT", {}).get("quantity", "N/A"),
-                "fat": data["totalNutrients"].get("FAT", {}).get("quantity", "N/A"),
-                "carbs": data["totalNutrients"].get("CHOCDF", {}).get("quantity", "N/A"),
-                "sodium": data["totalNutrients"].get("NA", {}).get("quantity", "N/A"),
-                "cholesterol": data["totalNutrients"].get("CHOLE", {}).get("quantity", "N/A"),
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
             }
-    return None
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
+        .header {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #007BFF;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 5px rgba(0, 123, 255, 0.2);
+            position: relative;
+        }
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    result = None
-    if request.method == "POST":
-        ingredient = request.form.get("ingredient")
-        result = get_nutrition_data(ingredient)
-    return render_template("index.html", result=result)
+        .header::after {
+            content: '';
+            width: 60px;
+            height: 3px;
+            background: #007BFF;
+            display: block;
+            margin: 10px auto;
+            border-radius: 5px;
+        }
 
+        .search-container {
+            margin: 20px 0;
+        }
 
-if __name__ == "__main__":
-    app.run(debug=True)
+        .search-bar {
+            width: 80%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 2px solid #007BFF;
+            border-radius: 25px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .search-bar:focus {
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        }
+
+        .search-button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            font-size: 1rem;
+            background: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .search-button:hover {
+            background: #0056b3;
+        }
+
+        .results {
+            margin-top: 20px;
+            text-align: left;
+            animation: slideIn 1s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        table th {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .footer a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">FoodySecure</div>
+        <p>Discover the nutritional values of your favorite foods in seconds.</p>
+        <div class="search-container">
+            <form method="POST" action="/">
+                <input type="text" name="ingredient" class="search-bar" placeholder="Enter a food item (e.g., '1 apple')..." required>
+                <button type="submit" class="search-button">Analyze</button>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results">
+            {% if result %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nutrient</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Calories</td>
+                        <td>{{ result.calories }} kcal</td>
+                    </tr>
+                    <tr>
+                        <td>Protein</td>
+                        <td>{{ result.protein }} g</td>
+                    </tr>
+                    <tr>
+                        <td>Fat</td>
+                        <td>{{ result.fat }} g</td>
+                    </tr>
+                    <tr>
+                        <td>Carbohydrates</td>
+                        <td>{{ result.carbs }} g</td>
+                    </tr>
+                    <tr>
+                        <td>Sodium</td>
+                        <td>{{ result.sodium }} mg</td>
+                    </tr>
+                    <tr>
+                        <td>Cholesterol</td>
+                        <td>{{ result.cholesterol }} mg</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>Powered by <a href="https://www.instagram.com/coder.hacked/" target="_blank">Coder.hacked</a></p>
+        </div>
+    </div>
+</body>
+</html>
